@@ -2,9 +2,7 @@ import tensorflow as tf
 import numpy as np
 from random import shuffle
 from dataset import generate_dataset, SDF
-#from replanning_demo import RobotController
 import pickle
-from geometry_msgs.msg import PoseStamped
 
 SDF_DIMENSION = (3,3,4)
 SDF_RESOLUTION = .02
@@ -139,6 +137,8 @@ def learn():
         pickle.dump(states, output, pickle.HIGHEST_PROTOCOL)
 
 def display_trajectory():
+    from geometry_msgs.msg import PoseStamped
+    from replanning_demo import RobotController
     import rospy
     file = "tmp.pkl"
     trajectory = pickle.load(open(file, "rb"))
