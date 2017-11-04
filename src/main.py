@@ -13,9 +13,9 @@ SDF_RESOLUTION = .02
 ARM_DIMENSION = 6
 LEARNING_RATE = 5e-4
 ITERATIONS = 40
-BATCH_SIZE = 50
+BATCH_SIZE = 20
 
-def get_model(sdf, state, num_actions, scope, reuse=False):
+def get_2d_model(sdf, state, num_actions, scope, reuse=False):
     with tf.variable_scope(scope, reuse=reuse):
         sdf_out = tf.layers.conv2d(sdf,     filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
         sdf_out = tf.layers.conv2d(sdf_out, filters=64, kernel_size=4, strides=2, activation=tf.nn.relu)
@@ -34,15 +34,47 @@ def get_model(sdf, state, num_actions, scope, reuse=False):
         out = tf.layers.dense(out, num_actions, activation=None)
     return out
 
+def get_3d_model(sdf, state, num_actions, scope, reuse=False):
+    with tf.variable_scope(scope, reuse=reuse):
+        sdf_out = tf.expand_dims(sdf, -1)
+        sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
+        print sdf_out.get_shape()
+        sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=6, strides=3, activation=tf.nn.relu)
+        print sdf_out.get_shape()
+        sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=4, strides=2, activation=tf.nn.relu)
+        print sdf_out.get_shape()
+        
+        flattened = tf.contrib.layers.flatten(sdf_out)
+        print flattened.get_shape()
+        out = tf.concat((flattened, state), axis=1)
+        print out.get_shape()
+
+        # out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
+        # out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
+        out = tf.layers.dense(out, num_actions, activation=None)
+        print out.get_shape()
+    return out
+
+# def get_model(sdf, state, num_actions, scope, reuse=False):
+#     with tf.variable_scope(scope, reuse=reuse):
+#         sdf_out = tf.expand_dims(sdf, -1)
+#         print sdf_out.get_shape()
+#         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
+#         print sdf_out.get_shape()
+#     return sdf_out
+
 def learn():
-    session = tf.Session()
+    tf_config = tf.ConfigProto(
+        inter_op_parallelism_threads=1,
+        intra_op_parallelism_threads=1)
+    session = tf.Session(config=tf_config)
 
     size = [dimension / SDF_RESOLUTION for dimension in SDF_DIMENSION]
     sdf_ph = tf.placeholder(tf.uint8, [None] + size)
     sdf_ph_float = tf.cast(sdf_ph, tf.float32)
     state_ph = tf.placeholder(tf.float32, [None, ARM_DIMENSION])
 
-    predicted_action = get_model(sdf_ph_float, state_ph, ARM_DIMENSION, "policy", reuse=False)
+    predicted_action = get_3d_model(sdf_ph_float, state_ph, ARM_DIMENSION, "policy", reuse=False)
     action = tf.placeholder(tf.float32, [None, ARM_DIMENSION])
 
     loss = tf.reduce_mean(tf.square(predicted_action - action))
@@ -53,6 +85,7 @@ def learn():
 
     session.__enter__()
     tf.global_variables_initializer().run()
+    saver = tf.train.Saver()
 
     for i in range(ITERATIONS):
         shuffle(indices)
@@ -74,10 +107,14 @@ def learn():
                 action: actions[batch]
             })
 
+    saver.save(session, "/models/model.ckpt")
+
     # evaluation
-    position = np.random.normal(scale=0.1, size=3) + np.array([1,0,1])
+    # position = np.random.normal(scale=0.1, size=3) + np.array([1,0,1])
+    position = np.array([1,2.2-1.5,1])
     print "box position:", position
     sdf = SDF()
+    sdf.add_box(position, (.5, .7, .1))
 
 
 
@@ -126,6 +163,6 @@ def display_trajectory():
         rospy.sleep(.1)
 
 if __name__ == "__main__":
-    # learn()
+    learn()
     # evaluate()
-    display_trajectory()
+    # display_trajectory()
