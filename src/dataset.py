@@ -50,7 +50,7 @@ def generate_state_action(i):
 def generate_dataset():
     files = listdir("../trajectories/")
     sdfs, states, actions, sdf_indices = [], [], [], []
-    for i in range(len(files)/2):
+    for i in range(int(len(files)/2)):
         sdfs.append(generate_sdf(i))
         state, action = generate_state_action(i)
         sdf_indices.append([i-1] * state.shape[0])
