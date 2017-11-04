@@ -1,10 +1,6 @@
 import pickle
 from os import listdir
 import numpy as np
-import sys
-from importlib import reload
-reload(sys)
-sys.setdefaultencoding('utf-8')
 
 SDF_DIMENSION = (3,3,4)
 SDF_RESOLUTION = .02
