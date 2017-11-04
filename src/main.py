@@ -9,7 +9,7 @@ SDF_RESOLUTION = .02
 # 6 for Fanuc, 7 for YuMi
 ARM_DIMENSION = 6
 LEARNING_RATE = 5e-4
-ITERATIONS = 40
+ITERATIONS = 0
 BATCH_SIZE = 20
 
 def get_2d_model(sdf, state, num_actions, scope, reuse=False):
@@ -77,8 +77,8 @@ def learn():
     loss = tf.reduce_mean(tf.square(predicted_action - action))
     update_op = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss)
 
-    sdfs, sdf_indices, states, actions = generate_dataset()
-    indices = np.arange(states.shape[0])
+    # sdfs, sdf_indices, states, actions = generate_dataset()
+    # indices = np.arange(states.shape[0])
 
     session.__enter__()
     tf.global_variables_initializer().run()
