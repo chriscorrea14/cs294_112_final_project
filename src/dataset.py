@@ -64,6 +64,18 @@ def generate_dataset():
 
     return sdfs, sdf_indices, states, actions
 
+def generate_numpy_dataset():
+    sdfs = np.load("../data/sdfs.npy")
+    sdf_indices = np.load("../data/sdf_indices.npy")
+    states = np.load("../data/states.npy")
+    actions = np.load("../data/actions.npy")
+    return sdfs, sdf_indices, states, actions
+
 if __name__ == "__main__":
-    generate_dataset()
+    sdfs, sdf_indices, states, actions = generate_dataset()
+    np.save("../data/sdfs.npy", sdfs)
+    np.save("../data/sdf_indices.npy", sdf_indices)
+    np.save("../data/states.npy", states)
+    np.save("../data/actions.npy", actions)
+
     # generate_sdf()

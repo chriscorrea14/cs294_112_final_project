@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from random import shuffle
-from dataset import generate_dataset, SDF
+from dataset import generate_dataset, SDF, generate_numpy_dataset
 import pickle
 
 SDF_DIMENSION = (3,3,4)
@@ -9,7 +9,7 @@ SDF_RESOLUTION = .02
 # 6 for Fanuc, 7 for YuMi
 ARM_DIMENSION = 6
 LEARNING_RATE = 5e-4
-ITERATIONS = 0
+ITERATIONS = 1
 BATCH_SIZE = 20
 
 def get_2d_model(sdf, state, num_actions, scope, reuse=False):
@@ -19,11 +19,6 @@ def get_2d_model(sdf, state, num_actions, scope, reuse=False):
         sdf_out = tf.layers.conv2d(sdf_out, filters=64, kernel_size=3, strides=1, activation=tf.nn.relu)
         
         flattened = tf.contrib.layers.flatten(sdf_out)
-        # print flattened.get_shape()
-        # print state.get_shape()
-        
-        # dim = np.prod(tf.shape(sdf_out)[1:])
-        # flattened = tf.reshape(sdf_out, [-1, dim])
         out = tf.concat((flattened, state), axis=1)
 
         out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
@@ -35,21 +30,15 @@ def get_3d_model(sdf, state, num_actions, scope, reuse=False):
     with tf.variable_scope(scope, reuse=reuse):
         sdf_out = tf.expand_dims(sdf, -1)
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
-        #print sdf_out.get_shape()
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=6, strides=3, activation=tf.nn.relu)
-        #print sdf_out.get_shape()
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=4, strides=2, activation=tf.nn.relu)
-        #print sdf_out.get_shape()
         
         flattened = tf.contrib.layers.flatten(sdf_out)
-        #print flattened.get_shape()
         out = tf.concat((flattened, state), axis=1)
-        #print out.get_shape()
 
         # out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
         # out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
         out = tf.layers.dense(out, num_actions, activation=None)
-        #print out.get_shape()
     return out
 
 # def get_model(sdf, state, num_actions, scope, reuse=False):
@@ -77,8 +66,8 @@ def learn():
     loss = tf.reduce_mean(tf.square(predicted_action - action))
     update_op = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss)
 
-    # sdfs, sdf_indices, states, actions = generate_dataset()
-    # indices = np.arange(states.shape[0])
+    sdfs, sdf_indices, states, actions = generate_numpy_dataset()
+    indices = np.arange(states.shape[0])
 
     session.__enter__()
     tf.global_variables_initializer().run()
@@ -104,7 +93,7 @@ def learn():
                 action: actions[batch]
             })
 
-    saver.save(session, "/models/model.ckpt")
+    saver.save(session, "../models/model.ckpt")
 
     # evaluation
     # position = np.random.normal(scale=0.1, size=3) + np.array([1,0,1])
