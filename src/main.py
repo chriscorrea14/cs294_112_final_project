@@ -2,9 +2,8 @@ import tensorflow as tf
 import numpy as np
 from random import shuffle
 from dataset import generate_dataset, SDF
-from replanning_demo import RobotController
+#from replanning_demo import RobotController
 import pickle
-import rospy
 from geometry_msgs.msg import PoseStamped
 
 SDF_DIMENSION = (3,3,4)
@@ -38,21 +37,21 @@ def get_3d_model(sdf, state, num_actions, scope, reuse=False):
     with tf.variable_scope(scope, reuse=reuse):
         sdf_out = tf.expand_dims(sdf, -1)
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
-        print sdf_out.get_shape()
+        #print sdf_out.get_shape()
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=6, strides=3, activation=tf.nn.relu)
-        print sdf_out.get_shape()
+        #print sdf_out.get_shape()
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=4, strides=2, activation=tf.nn.relu)
-        print sdf_out.get_shape()
+        #print sdf_out.get_shape()
         
         flattened = tf.contrib.layers.flatten(sdf_out)
-        print flattened.get_shape()
+        #print flattened.get_shape()
         out = tf.concat((flattened, state), axis=1)
-        print out.get_shape()
+        #print out.get_shape()
 
         # out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
         # out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
         out = tf.layers.dense(out, num_actions, activation=None)
-        print out.get_shape()
+        #print out.get_shape()
     return out
 
 # def get_model(sdf, state, num_actions, scope, reuse=False):
@@ -99,7 +98,7 @@ def learn():
                 action: actions[batch]
             })
 
-            print "Loss at iteration", i, ": ", current_loss
+            print("Loss at iteration", i, ": ", current_loss)
 
         session.run(update_op, feed_dict={
                 sdf_ph: sdf_batch, 
@@ -112,7 +111,7 @@ def learn():
     # evaluation
     # position = np.random.normal(scale=0.1, size=3) + np.array([1,0,1])
     position = np.array([1,2.2-1.5,1])
-    print "box position:", position
+    print("box position:", position)
     sdf = SDF()
     sdf.add_box(position, (.5, .7, .1))
 
@@ -134,12 +133,13 @@ def learn():
 
 
     states = np.array(states)
-    print states
+    print(states)
     file = "tmp.pkl"
     with open(file, 'wb') as output:
         pickle.dump(states, output, pickle.HIGHEST_PROTOCOL)
 
 def display_trajectory():
+    import rospy
     file = "tmp.pkl"
     trajectory = pickle.load(open(file, "rb"))
     rospy.init_node('robot_controller')

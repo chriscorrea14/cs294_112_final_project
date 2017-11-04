@@ -283,7 +283,7 @@ if __name__ == '__main__':
     group.execute(plan)
 
     raw_input('Press enter to start the demo')
-    print "\n"
+    print("\n")
     position = 0
     update_collision_box('obstacle', (0.7, 0, 0.9), (1, 0, 0, 0), (0.2, 0.4, 0.1))
     plan = robot_controller.collision_free_plan(group.get_current_joint_values(), joints2)
@@ -300,6 +300,6 @@ if __name__ == '__main__':
         position += .01
         update_collision_box('obstacle', (0.7, -position, 0.9), (1, 0, 0, 0), (0.2, 0.4+position*2, 0.1))
         iterations += 1
-        print "iterations: ", iterations
-    print "\n\n\n\nEnd of Project\n\n\n\n"
+        print("iterations: ", iterations)
+    print("\n\n\n\nEnd of Project\n\n\n\n")
     
