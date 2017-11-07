@@ -11,6 +11,7 @@ ARM_DIMENSION = 6
 LEARNING_RATE = 5e-4
 ITERATIONS = 1
 BATCH_SIZE = 20
+RETRAIN = False
 
 def get_2d_model(sdf, state, num_actions, scope, reuse=False):
     with tf.variable_scope(scope, reuse=reuse):
@@ -31,13 +32,13 @@ def get_3d_model(sdf, state, num_actions, scope, reuse=False):
         sdf_out = tf.expand_dims(sdf, -1)
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=6, strides=3, activation=tf.nn.relu)
-        sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=4, strides=2, activation=tf.nn.relu)
+        sdf_out = tf.layers.conv3d(sdf_out, filters=64, kernel_size=4, strides=2, activation=tf.nn.relu)
         
         flattened = tf.contrib.layers.flatten(sdf_out)
         out = tf.concat((flattened, state), axis=1)
 
-        # out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
-        # out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
+        out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
+        out = tf.layers.dense(out, 256,         activation=tf.nn.relu)
         out = tf.layers.dense(out, num_actions, activation=None)
     return out
 
@@ -49,7 +50,7 @@ def get_3d_model(sdf, state, num_actions, scope, reuse=False):
 #         print sdf_out.get_shape()
 #     return sdf_out
 
-def learn():
+def set_up():
     tf_config = tf.ConfigProto(
         inter_op_parallelism_threads=1,
         intra_op_parallelism_threads=1)
@@ -65,13 +66,16 @@ def learn():
 
     loss = tf.reduce_mean(tf.square(predicted_action - action))
     update_op = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss)
-
-    sdfs, sdf_indices, states, actions = generate_numpy_dataset()
-    indices = np.arange(states.shape[0])
-
+    
     session.__enter__()
     tf.global_variables_initializer().run()
+
+    return session, loss, update_op, predicted_action, sdf_ph, state_ph
+    
+def train(session, loss, update_op, sdf_ph, state_ph):
     saver = tf.train.Saver()
+    sdfs, sdf_indices, states, actions = generate_numpy_dataset()
+    indices = np.arange(states.shape[0])
 
     for i in range(ITERATIONS):
         shuffle(indices)
@@ -84,25 +88,24 @@ def learn():
                 state_ph: states[batch], 
                 action: actions[batch]
             })
-
             print("Loss at iteration", i, ": ", current_loss)
-
         session.run(update_op, feed_dict={
                 sdf_ph: sdf_batch, 
                 state_ph: states[batch], 
                 action: actions[batch]
             })
-
     saver.save(session, "../models/model.ckpt")
 
-    # evaluation
+def load_model(session):
+    saver = tf.train.Saver()
+    saver.restore(session, "../models/model.ckpt")
+
+def evaluate(session, predicted_action, sdf_ph, state_ph):
     # position = np.random.normal(scale=0.1, size=3) + np.array([1,0,1])
-    position = np.array([1,2.2-1.5,1])
+    position = np.array([1,.3,1])
     print("box position:", position)
     sdf = SDF()
     sdf.add_box(position, (.5, .7, .1))
-
-
 
     states = []
     state = np.array([0.0] * 6)
@@ -111,26 +114,21 @@ def learn():
         state = state + a
         states.append(state)
 
-    # sdf.add_box(position, (.5, .7, .1))
-    # for _ in range(95):
-    #     a = session.run(predicted_action, feed_dict={sdf_ph: [sdf.data], state_ph: [state]})[0]
-    #     state = state + a
-    #     states.append(state)
-
-
-
     states = np.array(states)
-    print(states)
-    file = "tmp.pkl"
-    with open(file, 'wb') as output:
-        pickle.dump(states, output, pickle.HIGHEST_PROTOCOL)
+    # print(states)
+    # file = "tmp.pkl"
+    # with open(file, 'wb') as output:
+    #     pickle.dump(states, output, pickle.HIGHEST_PROTOCOL)
+    while True:
+        raw_input("Press enter to display trajectory")
+        display_trajectory(states)
 
-def display_trajectory():
+def display_trajectory(trajectory):
     from geometry_msgs.msg import PoseStamped
     from replanning_demo import RobotController
     import rospy
-    file = "tmp.pkl"
-    trajectory = pickle.load(open(file, "rb"))
+    # file = "tmp.pkl"
+    # trajectory = pickle.load(open(file, "rb"))
     rospy.init_node('robot_controller')
     robot_controller = RobotController()
 
@@ -152,6 +150,9 @@ def display_trajectory():
         rospy.sleep(.1)
 
 if __name__ == "__main__":
-    learn()
-    # evaluate()
-    # display_trajectory()
+    session, loss, update_op, predicted_action, sdf_ph, state_ph = set_up()
+    if RETRAIN:
+        train(session, loss, update_op, sdf_ph, state_ph)
+    else:
+        load_model(session)
+    evaluate(session, predicted_action, sdf_ph, state_ph)
