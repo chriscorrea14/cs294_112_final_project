@@ -31,8 +31,8 @@ def get_3d_model(sdf, state, num_actions, scope, reuse=False):
     with tf.variable_scope(scope, reuse=reuse):
         sdf_out = tf.expand_dims(sdf, -1)
         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
-        sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=6, strides=3, activation=tf.nn.relu)
-        sdf_out = tf.layers.conv3d(sdf_out, filters=64, kernel_size=4, strides=2, activation=tf.nn.relu)
+        sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=4, strides=2, activation=tf.nn.relu)
+        sdf_out = tf.layers.conv3d(sdf_out, filters=64, kernel_size=3, strides=1, activation=tf.nn.relu)
         
         flattened = tf.contrib.layers.flatten(sdf_out)
         out = tf.concat((flattened, state), axis=1)
