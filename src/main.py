@@ -70,9 +70,9 @@ def set_up():
     session.__enter__()
     tf.global_variables_initializer().run()
 
-    return session, loss, update_op, predicted_action, sdf_ph, state_ph
+    return session, loss, update_op, predicted_action, action, sdf_ph, state_ph
     
-def train(session, loss, update_op, sdf_ph, state_ph):
+def train(session, loss, update_op, action, sdf_ph, state_ph):
     saver = tf.train.Saver()
     sdfs, sdf_indices, states, actions = generate_numpy_dataset()
     indices = np.arange(states.shape[0])
@@ -150,9 +150,9 @@ def display_trajectory(trajectory):
         rospy.sleep(.1)
 
 if __name__ == "__main__":
-    session, loss, update_op, predicted_action, sdf_ph, state_ph = set_up()
+    session, loss, update_op, predicted_action, action, sdf_ph, state_ph = set_up()
     if RETRAIN:
-        train(session, loss, update_op, sdf_ph, state_ph)
+        train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
         load_model(session)
-    evaluate(session, predicted_action, sdf_ph, state_ph)
+        evaluate(session, predicted_action, sdf_ph, state_ph)
