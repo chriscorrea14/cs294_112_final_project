@@ -13,7 +13,6 @@ ARM_DIMENSION = 6
 LEARNING_RATE = 5e-4
 ITERATIONS = 40
 BATCH_SIZE = 20
-RETRAIN = False
 
 def get_2d_model(sdf, state, num_actions, scope, reuse=False):
     with tf.variable_scope(scope, reuse=reuse):
@@ -164,9 +163,16 @@ def visualize_sdf():
     sys.exit()
 
 if __name__ == "__main__":
-    # visualize_sdf()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-visualize_sdf', '-v', action='store_true')
+    parser.add_argument('-retrain_model', '-r', action='store_true')
+    args = parser.parse_args()
+
+    if args.visualize_sdf:
+        visualize_sdf()
     session, loss, update_op, predicted_action, action, sdf_ph, state_ph = set_up()
-    if RETRAIN:
+    if args.retrain:
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
         load_model(session)
