@@ -2,7 +2,7 @@ import pickle
 from os import listdir
 import numpy as np
 
-SDF_DIMENSION = (3,3,4)
+SDF_DIMENSION = (1.5,2,4)
 SDF_RESOLUTION = .02
 
 class SDF():
@@ -11,7 +11,7 @@ class SDF():
         self.data = np.zeros(size, dtype=np.uint8)
 
     def add_box(self, position, size):
-        for i in np.arange(-SDF_DIMENSION[0]/2., SDF_DIMENSION[0]/2., SDF_RESOLUTION):
+        for i in np.arange(0, SDF_DIMENSION[0], SDF_RESOLUTION):
             if i < position[0] - size[0]/2. or i > position[0] + size[0]/2.:
                 continue
             for j in np.arange(-SDF_DIMENSION[1]/2., SDF_DIMENSION[1]/2., SDF_RESOLUTION):
@@ -20,7 +20,7 @@ class SDF():
                 for k in np.arange(-SDF_DIMENSION[2]/2., SDF_DIMENSION[2]/2., SDF_RESOLUTION):
                     if k < position[2] - size[2]/2. or k > position[2] + size[2]/2.:
                         continue
-                    l = int((SDF_DIMENSION[0]/2. + i)/SDF_RESOLUTION)
+                    l = int(i/SDF_RESOLUTION)
                     m = int((SDF_DIMENSION[1]/2. + j)/SDF_RESOLUTION)
                     n = int((SDF_DIMENSION[2]/2. + k)/SDF_RESOLUTION)
                     self.data[l,m,n] = 1

@@ -1,10 +1,12 @@
+import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from random import shuffle
 from dataset import generate_dataset, SDF, generate_numpy_dataset
 import pickle
+import sys
 
-SDF_DIMENSION = (3,3,4)
+SDF_DIMENSION = (1.5,2,4)
 SDF_RESOLUTION = .02
 # 6 for Fanuc, 7 for YuMi
 ARM_DIMENSION = 6
@@ -149,7 +151,21 @@ def display_trajectory(trajectory):
         robot_controller.publish_joints(point)
         rospy.sleep(.1)
 
+def visualize_sdf():
+    sdfs, sdf_indices, states, actions = generate_dataset()
+    # print np.sum(sdfs[0])
+    plt.gray()
+    # for scale in np.linspace(0,1,20):
+    for i in range(30):
+        scale = 12/20.
+        print SDF_DIMENSION[0]/SDF_RESOLUTION
+        img = sdfs[i][int(scale*SDF_DIMENSION[0]/SDF_RESOLUTION)]
+        plt.imshow(img)
+        plt.show()
+    sys.exit()
+
 if __name__ == "__main__":
+    # visualize_sdf()
     session, loss, update_op, predicted_action, action, sdf_ph, state_ph = set_up()
     if RETRAIN:
         train(session, loss, update_op, action, sdf_ph, state_ph)
