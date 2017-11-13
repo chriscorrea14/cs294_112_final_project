@@ -172,7 +172,7 @@ if __name__ == "__main__":
     if args.visualize_sdf:
         visualize_sdf()
     session, loss, update_op, predicted_action, action, sdf_ph, state_ph = set_up()
-    if args.retrain:
+    if args.retrain_model:
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
         load_model(session)
