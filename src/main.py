@@ -158,7 +158,6 @@ def visualize_sdf():
     # for scale in np.linspace(0,1,20):
     for i in range(30):
         scale = 12/20.
-        print SDF_DIMENSION[0]/SDF_RESOLUTION
         img = sdfs[i][int(scale*SDF_DIMENSION[0]/SDF_RESOLUTION)]
         plt.imshow(img)
         plt.show()
