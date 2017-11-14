@@ -95,47 +95,41 @@ def train(session, loss, update_op, action, sdf_ph, state_ph):
                 state_ph: states[batch], 
                 action: actions[batch]
             })
-    saver.save(session, "../models/model.ckpt")
+    saver.save(session, "./models/model.ckpt")
 
 def load_model(session):
     saver = tf.train.Saver()
-    saver.restore(session, "../models/model.ckpt")
+    saver.restore(session, "./models/model.ckpt")
 
-def evaluate(session, predicted_action, sdf_ph, state_ph):
-    # position = np.random.normal(scale=0.1, size=3) + np.array([1,0,1])
-    position = np.array([1,.3,1])
-    print("box position:", position)
+def evaluate(session, predicted_action, sdf_ph, state_ph, horizon=100, box_position=np.array([1,0,1])):
+    print("box position:", box_position)
     sdf = SDF()
-    sdf.add_box(position, (.5, .7, .1))
+    sdf.add_box(box_position, (.5, .7, .1))
 
     states = []
     state = np.array([0.0] * 6)
-    for _ in range(100):
+    for _ in range(horizon):
         a = session.run(predicted_action, feed_dict={sdf_ph: [sdf.data], state_ph: [state]})[0]
         state = state + a
         states.append(state)
 
     states = np.array(states)
+    return states
     # print(states)
     # file = "tmp.pkl"
     # with open(file, 'wb') as output:
     #     pickle.dump(states, output, pickle.HIGHEST_PROTOCOL)
-    while True:
-        raw_input("Press enter to display trajectory")
-        display_trajectory(states)
 
-def display_trajectory(trajectory):
+def display_trajectory(trajectory, box_position=np.array([1,0,1])):
     from geometry_msgs.msg import PoseStamped
     from replanning_demo import RobotController
     import rospy
-    # file = "tmp.pkl"
-    # trajectory = pickle.load(open(file, "rb"))
+
     rospy.init_node('robot_controller')
     robot_controller = RobotController()
 
     pose = PoseStamped()
-    # pose.header.frame_id = robot.get_planning_frame()
-    box_position = [0.80702869, 0.05520982, 0.93043837]
+    pose.header.frame_id = robot_controller.planning_frame
     pose.pose.position.x = box_position[0]
     pose.pose.position.y = box_position[1]
     pose.pose.position.z = box_position[2]
@@ -146,13 +140,14 @@ def display_trajectory(trajectory):
     robot_controller.scene.add_box("aaa", pose, size=(0.5, .7, 0.1))
     rospy.sleep(2)
 
-    for point in trajectory:
-        robot_controller.publish_joints(point)
-        rospy.sleep(.1)
+    while True:
+        raw_input("Press enter to display trajectory")
+        for point in trajectory:
+            robot_controller.publish_joints(point)
+            rospy.sleep(.1)
 
 def visualize_sdf():
     sdfs, sdf_indices, states, actions = generate_dataset()
-    # print np.sum(sdfs[0])
     plt.gray()
     # for scale in np.linspace(0,1,20):
     for i in range(30):
@@ -173,7 +168,16 @@ if __name__ == "__main__":
         visualize_sdf()
     session, loss, update_op, predicted_action, action, sdf_ph, state_ph = set_up()
     if args.retrain_model:
+        load_model(session)
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
         load_model(session)
-        evaluate(session, predicted_action, sdf_ph, state_ph)
+        # trajectory = evaluate(session, predicted_action, sdf_ph, state_ph)
+        # display_trajectory(trajectory)
+        steps = []
+        for y_pos in np.linspace(-.5, .5, 30):
+            box_position = np.array([1, y_pos, 1])
+            trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, horizon=10, box_position=box_position)
+            steps.append(trajectory[-1])
+        steps = np.vstack(steps)
+        np.save("./dagger/steps.npy", steps)
