@@ -28,13 +28,13 @@ class SDF():
 def generate_sdf(i):
     file = str(i) + "_box_position.pkl"
     sdf = SDF()
-    position = pickle.load(open("../trajectories/" + file, "rb"))
+    position = pickle.load(open("./trajectories/" + file, "rb"))
     sdf.add_box(position, (.5, .7, .1))
     return sdf.data
 
 def generate_state_action(i):
     file = str(i) + "_plan.pkl"
-    trajectory = pickle.load(open("../trajectories/" + file, "rb"))
+    trajectory = pickle.load(open("./trajectories/" + file, "rb"))
     trajectory = trajectory.joint_trajectory.points
     states, actions = [], []
     for j in range(len(trajectory) - 1):
@@ -48,7 +48,7 @@ def generate_state_action(i):
 
 
 def generate_dataset():
-    files = listdir("../trajectories/")
+    files = listdir("./trajectories/")
     sdfs, states, actions, sdf_indices = [], [], [], []
     for i in range(int(len(files)/2)):
         sdfs.append(generate_sdf(i))
@@ -65,17 +65,17 @@ def generate_dataset():
     return sdfs, sdf_indices, states, actions
 
 def generate_numpy_dataset():
-    sdfs = np.load("../data/sdfs.npy")
-    sdf_indices = np.load("../data/sdf_indices.npy")
-    states = np.load("../data/states.npy")
-    actions = np.load("../data/actions.npy")
+    sdfs = np.load("./data/sdfs.npy")
+    sdf_indices = np.load("./data/sdf_indices.npy")
+    states = np.load("./data/states.npy")
+    actions = np.load("./data/actions.npy")
     return sdfs, sdf_indices, states, actions
 
 if __name__ == "__main__":
     sdfs, sdf_indices, states, actions = generate_dataset()
-    np.save("../data/sdfs.npy", sdfs)
-    np.save("../data/sdf_indices.npy", sdf_indices)
-    np.save("../data/states.npy", states)
-    np.save("../data/actions.npy", actions)
+    np.save("./data/sdfs.npy", sdfs)
+    np.save("./data/sdf_indices.npy", sdf_indices)
+    np.save("./data/states.npy", states)
+    np.save("./data/actions.npy", actions)
 
     # generate_sdf()

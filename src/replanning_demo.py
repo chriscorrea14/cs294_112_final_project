@@ -15,6 +15,7 @@ import numpy as np
 from math import sin
 from random import random
 from rosgraph_msgs.msg import Log
+import pickle
 
 class RobotController(object):
     def __init__(self):
@@ -24,6 +25,7 @@ class RobotController(object):
         moveit_commander.roscpp_initialize(sys.argv)
         self.group = moveit_commander.MoveGroupCommander('manipulator')
         self.scene = moveit_commander.PlanningSceneInterface()
+        self.planning_frame = moveit_commander.RobotCommander().get_planning_frame()
         self.group.set_planning_time(5)
         self.display_planned_path_publisher = rospy.Publisher('manipulator/display_planned_path', DisplayTrajectory, queue_size=10)
         self.initial_trajectory_proxy = rospy.ServiceProxy('manipulator/set_initial_trajectory', SetInitialTrajectory)
@@ -85,25 +87,13 @@ class RobotController(object):
     #     for i in range(len(trajectory.points)):
 
 
-def add_obstacle(height, operation):
+def add_obstacle(position, operation):
     planning_scene_publisher = rospy.Publisher('/collision_object', CollisionObject, queue_size=10)
 
     scene = moveit_commander.PlanningSceneInterface()
     robot = moveit_commander.RobotCommander()
     rospy.sleep(2)
-    pose = PoseStamped()
-    pose.header.frame_id = robot.get_planning_frame()
-    pose.pose.position.x = 1
-    pose.pose.position.y = height - .2
-    pose.pose.position.z = 1
-    # pose.pose.orientation.w = 0.707
-    # pose.pose.orientation.x = 0
-    # pose.pose.orientation.y = 0.707
-    # pose.pose.orientation.z = 0
-    pose.pose.orientation.w = 1
-    pose.pose.orientation.x = 0
-    pose.pose.orientation.y = 0
-    pose.pose.orientation.z = 0
+    pose = make_pose(position, [1,0,0,0], robot.get_planning_frame())
 
     co = CollisionObject()
     co.operation = operation
@@ -116,31 +106,19 @@ def add_obstacle(height, operation):
     co.primitive_poses = [pose.pose]
     planning_scene_publisher.publish(co)
 
+    # pose = make_pose([.7, height+.7, .9], [0.924, 0, 0, 0.383])
+    # co = CollisionObject()
+    # co.operation = operation
+    # co.id = "obstacle2"
+    # co.header = pose.header
+    # box = SolidPrimitive()
+    # box.type = SolidPrimitive.BOX
+    # box.dimensions = (1, .1, 1)
+    # co.primitives = [box]
+    # co.primitive_poses = [pose.pose]
 
-
-    pose.pose.position.x = .7
-    pose.pose.position.y = height + .7
-    pose.pose.position.z = .9
-    # pose.pose.orientation.w = 1
-    # pose.pose.orientation.x = 0rostime
-    # pose.pose.orientation.y = 0
-    # pose.pose.orientation.z = 0
-    pose.pose.orientation.w = 0.924
-    pose.pose.orientation.x = 0
-    pose.pose.orientation.y = 0
-    pose.pose.orientation.z = 0.383
-    co = CollisionObject()
-    co.operation = operation
-    co.id = "obstacle2"
-    co.header = pose.header
-    box = SolidPrimitive()
-    box.type = SolidPrimitive.BOX
-    box.dimensions = (1, .1, 1)
-    co.primitives = [box]
-    co.primitive_poses = [pose.pose]
-
-    planning_scene_publisher.publish(co)
-    raw_input("press enter(1)")
+    # planning_scene_publisher.publish(co)
+    # raw_input("press enter(1)")
 
 def make_pose(position, orientation, frame):
     pose = PoseStamped()
@@ -207,6 +185,26 @@ def log_subscriber(logfile):
                 logfile.write('\n')
 
     rospy.Subscriber("rosout_agg", Log, log_iterations)
+
+def save_trajectory(box_position, plan, filename):
+    position_filename = filename + "_box_position.pkl"
+    with open(position_filename, 'wb') as output:
+        pickle.dump(box_position, output, pickle.HIGHEST_PROTOCOL)
+    plan_filename = filename + "_plan.pkl"
+    with open(plan_filename, 'wb') as output:
+        pickle.dump(plan, output, pickle.HIGHEST_PROTOCOL)
+
+def dagger(robot_controller):
+    starting_poss = np.load("./dagger/steps.npy")
+    print starting_poss
+    ending_pos = [-0.0974195, 1.3523, 0.682611, 0.156142, 0.675658, -0.122225]
+    y_pos = np.linspace(-.5, .5, 30)
+    for i in range(30):
+        box_position = [1, y_pos[i], 1]
+        add_obstacle(box_position, CollisionObject.ADD)
+
+        plan = robot_controller.collision_free_plan(starting_poss[0], ending_pos)
+        save_trajectory(box_position, plan, "./trajectories2/" + str(i))
 
 if __name__ == '__main__':
     rospy.init_node('robot_controller')
@@ -278,28 +276,32 @@ if __name__ == '__main__':
 
 
 
-    remove_collision_box('obstacle')
-    plan = robot_controller.collision_free_plan(group.get_current_joint_values(), joints1)
-    group.execute(plan)
 
-    raw_input('Press enter to start the demo')
-    print("\n")
-    position = 0
-    update_collision_box('obstacle', (0.7, 0, 0.9), (1, 0, 0, 0), (0.2, 0.4, 0.1))
-    plan = robot_controller.collision_free_plan(group.get_current_joint_values(), joints2)
 
-    iterations = 0
-    while True:
-        plan = robot_controller.collision_free_plan(group.get_current_joint_values(), joints2, plan)
-        plan = truncate_plan(plan, group.get_current_joint_values())
-        plan.joint_trajectory.points[0].positions = group.get_current_joint_values()
-        group.execute(plan, wait=False)
-        rospy.sleep(.2)
-        # group.stop()
+    # replanning demo
+    # remove_collision_box('obstacle')
+    # plan = robot_controller.collision_free_plan(group.get_current_joint_values(), joints1)
+    # group.execute(plan)
+
+    # raw_input('Press enter to start the demo')
+    # print("\n")
+    # position = 0
+    # update_collision_box('obstacle', (0.7, 0, 0.9), (1, 0, 0, 0), (0.2, 0.4, 0.1))
+    # plan = robot_controller.collision_free_plan(group.get_current_joint_values(), joints2)
+
+    # iterations = 0
+    # while True:
+    #     plan = robot_controller.collision_free_plan(group.get_current_joint_values(), joints2, plan)
+    #     plan = truncate_plan(plan, group.get_current_joint_values())
+    #     plan.joint_trajectory.points[0].positions = group.get_current_joint_values()
+    #     group.execute(plan, wait=False)
+    #     rospy.sleep(.2)
+    #     # group.stop()
         
-        position += .01
-        update_collision_box('obstacle', (0.7, -position, 0.9), (1, 0, 0, 0), (0.2, 0.4+position*2, 0.1))
-        iterations += 1
-        print("iterations: ", iterations)
+    #     position += .01
+    #     update_collision_box('obstacle', (0.7, -position, 0.9), (1, 0, 0, 0), (0.2, 0.4+position*2, 0.1))
+    #     iterations += 1
+    #     print("iterations: ", iterations)
+    dagger(robot_controller)
     print("\n\n\n\nEnd of Project\n\n\n\n")
     
