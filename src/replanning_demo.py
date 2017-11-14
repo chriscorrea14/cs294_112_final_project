@@ -87,7 +87,7 @@ class RobotController(object):
     #     for i in range(len(trajectory.points)):
 
 
-def add_obstacle(position, operation):
+def add_obstacle(position, operation=CollisionObject.ADD):
     planning_scene_publisher = rospy.Publisher('/collision_object', CollisionObject, queue_size=10)
 
     scene = moveit_commander.PlanningSceneInterface()
@@ -199,12 +199,13 @@ def dagger(robot_controller):
     print starting_poss
     ending_pos = [-0.0974195, 1.3523, 0.682611, 0.156142, 0.675658, -0.122225]
     y_pos = np.linspace(-.5, .5, 30)
-    for i in range(30):
+    # for i in range(30):
+    for i in [21]:
         box_position = [1, y_pos[i], 1]
         add_obstacle(box_position, CollisionObject.ADD)
 
-        plan = robot_controller.collision_free_plan(starting_poss[0], ending_pos)
-        save_trajectory(box_position, plan, "./trajectories2/" + str(i))
+        plan = robot_controller.collision_free_plan(starting_poss[i], ending_pos)
+        save_trajectory(box_position, plan, "./trajectories2/" + str(i+30))
 
 if __name__ == '__main__':
     rospy.init_node('robot_controller')

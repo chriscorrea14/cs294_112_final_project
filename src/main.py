@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from random import shuffle
-from dataset import generate_dataset, SDF, generate_numpy_dataset
+from dataset import generate_dataset, SDF
 import pickle
 import sys
 
@@ -75,7 +75,7 @@ def set_up():
     
 def train(session, loss, update_op, action, sdf_ph, state_ph):
     saver = tf.train.Saver()
-    sdfs, sdf_indices, states, actions = generate_numpy_dataset()
+    sdfs, sdf_indices, states, actions = generate_dataset(use_numpy=True)
     indices = np.arange(states.shape[0])
 
     for i in range(ITERATIONS):
@@ -120,31 +120,34 @@ def evaluate(session, predicted_action, sdf_ph, state_ph, horizon=100, box_posit
     # with open(file, 'wb') as output:
     #     pickle.dump(states, output, pickle.HIGHEST_PROTOCOL)
 
-def display_trajectory(trajectory, box_position=np.array([1,0,1])):
+def display_trajectory(trajectory, box_position=np.array([1,0,1]), iterations=10):
     from geometry_msgs.msg import PoseStamped
-    from replanning_demo import RobotController
+    from replanning_demo import RobotController, add_obstacle
     import rospy
 
     rospy.init_node('robot_controller')
     robot_controller = RobotController()
 
-    pose = PoseStamped()
-    pose.header.frame_id = robot_controller.planning_frame
-    pose.pose.position.x = box_position[0]
-    pose.pose.position.y = box_position[1]
-    pose.pose.position.z = box_position[2]
-    pose.pose.orientation.w = 1
-    pose.pose.orientation.x = 0
-    pose.pose.orientation.y = 0
-    pose.pose.orientation.z = 0
-    robot_controller.scene.add_box("aaa", pose, size=(0.5, .7, 0.1))
-    rospy.sleep(2)
+    # pose = PoseStamped()
+    # pose.header.frame_id = robot_controller.planning_frame
+    # pose.pose.position.x = box_position[0]
+    # pose.pose.position.y = box_position[1]
+    # pose.pose.position.z = box_position[2]
+    # pose.pose.orientation.w = 1
+    # pose.pose.orientation.x = 0
+    # pose.pose.orientation.y = 0
+    # pose.pose.orientation.z = 0
+    # robot_controller.scene.add_box("aaa", pose, size=(0.5, .7, 0.1))
+    # rospy.sleep(2)
+    add_obstacle(box_position)
 
-    while True:
+    for _ in range(iterations):
         raw_input("Press enter to display trajectory")
         for point in trajectory:
+            if hasattr(point, "positions"):
+                point = point.positions
             robot_controller.publish_joints(point)
-            rospy.sleep(.1)
+            rospy.sleep(.05)
 
 def visualize_sdf():
     sdfs, sdf_indices, states, actions = generate_dataset()
@@ -162,22 +165,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-visualize_sdf', '-v', action='store_true')
     parser.add_argument('-retrain_model', '-r', action='store_true')
+    parser.add_argument('-load_model', '-l', action='store_true')
     args = parser.parse_args()
 
     if args.visualize_sdf:
         visualize_sdf()
     session, loss, update_op, predicted_action, action, sdf_ph, state_ph = set_up()
-    if args.retrain_model:
+    if args.load_model:
         load_model(session)
+    if args.retrain_model:
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
-        load_model(session)
-        # trajectory = evaluate(session, predicted_action, sdf_ph, state_ph)
-        # display_trajectory(trajectory)
-        steps = []
-        for y_pos in np.linspace(-.5, .5, 30):
-            box_position = np.array([1, y_pos, 1])
-            trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, horizon=10, box_position=box_position)
-            steps.append(trajectory[-1])
-        steps = np.vstack(steps)
-        np.save("./dagger/steps.npy", steps)
+        box_position=np.array([1,.2,1])
+        trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, box_position=box_position)
+        display_trajectory(trajectory)
+        # steps = []
+        # for y_pos in np.linspace(-.5, .5, 30):
+        #     box_position = np.array([1, y_pos, 1])
+        #     trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, horizon=10, box_position=box_position)
+        #     steps.append(trajectory[-1])
+        # steps = np.vstack(steps)
+        # np.save("./dagger/steps.npy", steps)
