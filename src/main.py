@@ -5,6 +5,9 @@ from random import shuffle
 from dataset import generate_dataset, SDF
 import pickle
 import sys
+import argparse
+import time
+from controllers import BCcontroller, MPCcontroller
 
 SDF_DIMENSION = (1.5,2,4)
 SDF_RESOLUTION = .02
@@ -101,24 +104,33 @@ def load_model(session):
     saver = tf.train.Saver()
     saver.restore(session, "./models/model.ckpt")
 
-def evaluate(session, predicted_action, sdf_ph, state_ph, horizon=100, box_position=np.array([1,0,1])):
-    print("box position:", box_position)
+def evaluate(session, 
+             predicted_action, 
+             sdf_ph, 
+             state_ph, 
+             controller, 
+             horizon=100, 
+             box_position=np.array([1,0,1]), 
+             state=np.array([0.0] * 6), 
+             goal_state=np.array([-0.0974195, 1.3523, 0.682611, 0.156142, 0.675658, -0.122225])):
+    from geometry_msgs.msg import PoseStamped
+    from replanning_demo import RobotController, add_obstacle
+    import rospy
+    rospy.init_node('robot_controller')
+    robot_controller = RobotController()
+    add_obstacle(box_position)
+
     sdf = SDF()
     sdf.add_box(box_position, (.5, .7, .1))
 
     states = []
-    state = np.array([0.0] * 6)
+    start_time = time.time()
     for _ in range(horizon):
-        a = session.run(predicted_action, feed_dict={sdf_ph: [sdf.data], state_ph: [state]})[0]
-        state = state + a
-        states.append(state)
-
-    states = np.array(states)
-    return states
-    # print(states)
-    # file = "tmp.pkl"
-    # with open(file, 'wb') as output:
-    #     pickle.dump(states, output, pickle.HIGHEST_PROTOCOL)
+        robot_controller.publish_joints(state)
+        state = state + controller.action(state, goal_state, sdf)
+        states.append(states)
+    print "Execution time:", time.time() - start_time
+    return np.array(states)
 
 def display_trajectory(trajectory, box_position=np.array([1,0,1]), iterations=10):
     from geometry_msgs.msg import PoseStamped
@@ -127,18 +139,6 @@ def display_trajectory(trajectory, box_position=np.array([1,0,1]), iterations=10
 
     rospy.init_node('robot_controller')
     robot_controller = RobotController()
-
-    # pose = PoseStamped()
-    # pose.header.frame_id = robot_controller.planning_frame
-    # pose.pose.position.x = box_position[0]
-    # pose.pose.position.y = box_position[1]
-    # pose.pose.position.z = box_position[2]
-    # pose.pose.orientation.w = 1
-    # pose.pose.orientation.x = 0
-    # pose.pose.orientation.y = 0
-    # pose.pose.orientation.z = 0
-    # robot_controller.scene.add_box("aaa", pose, size=(0.5, .7, 0.1))
-    # rospy.sleep(2)
     add_obstacle(box_position)
 
     for _ in range(iterations):
@@ -161,7 +161,6 @@ def visualize_sdf():
     sys.exit()
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('-visualize_sdf', '-v', action='store_true')
     parser.add_argument('-retrain_model', '-r', action='store_true')
@@ -176,9 +175,12 @@ if __name__ == "__main__":
     if args.retrain_model:
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
-        box_position=np.array([1,.2,1])
-        trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, box_position=box_position)
-        display_trajectory(trajectory)
+        box_position=np.array([1,.25,1])
+        # controller = MPCcontroller(session, predicted_action, sdf_ph, state_ph, ARM_DIMENSION)
+        controller = BCcontroller(session, predicted_action, sdf_ph, state_ph)
+        trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, controller, box_position=box_position)
+        # display_trajectory(trajectory, box_position=box_position)
+
         # steps = []
         # for y_pos in np.linspace(-.5, .5, 30):
         #     box_position = np.array([1, y_pos, 1])
