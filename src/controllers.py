@@ -1,11 +1,27 @@
 import numpy as np
 from sklearn.preprocessing import normalize
+from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest, GetStateValidityResponse
+import rospy
+
+collision_srv = rospy.ServiceProxy('/check_state_validity', GetStateValidity)
+collision_srv.wait_for_service()
+req = GetStateValidityRequest()
+
+def in_collision(state):
+    req.robot_state.joint_state.header.stamp = rospy.Time.now()
+    req.robot_state.joint_state.name = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
+    req.robot_state.joint_state.position = state
+    res = collision_srv.call(req)
+    return not res.valid
 
 # cost fns
-def l2_cost_fn(states, goal_state):
+def l2_cost_fn(second_states, final_states, goal_state):
     costs = []
-    for state in states:
-        costs.append(np.linalg.norm(goal_state - state))
+    for second_state, final_state in zip(second_states, final_states):
+        if in_collision(second_state):
+            costs.append(float('inf'))
+        else:
+            costs.append(np.linalg.norm(goal_state - final_state))
     return costs
 
 class BCcontroller(object):
@@ -30,7 +46,7 @@ class MPCcontroller(object):
                  state_ph, 
                  arm_dimension, 
                  cost_fn=l2_cost_fn,
-                 num_simulated_paths=30,
+                 num_simulated_paths=20,
                  num_random=1, 
                  num_chomp=3):
         self.session = session
@@ -57,7 +73,8 @@ class MPCcontroller(object):
         for _ in range(self.num_random):
             actions = self.random_action()
             if not initial_action_set:
-                initial_actions = actions                
+                initial_actions = actions
+                second_states = states + actions
             states = states + actions
         for _ in range(self.num_chomp):
             actions = self.session.run(
@@ -66,5 +83,5 @@ class MPCcontroller(object):
                 )
             states = states + actions
 
-        costs = self.cost_fn(states, goal_state)
+        costs = self.cost_fn(second_states, states, goal_state)
         return initial_actions[np.argmin(costs)]

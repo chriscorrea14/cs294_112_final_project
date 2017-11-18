@@ -46,14 +46,6 @@ def get_3d_model(sdf, state, num_actions, scope, reuse=False):
         out = tf.layers.dense(out, num_actions, activation=None)
     return out
 
-# def get_model(sdf, state, num_actions, scope, reuse=False):
-#     with tf.variable_scope(scope, reuse=reuse):
-#         sdf_out = tf.expand_dims(sdf, -1)
-#         print sdf_out.get_shape()
-#         sdf_out = tf.layers.conv3d(sdf_out, filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
-#         print sdf_out.get_shape()
-#     return sdf_out
-
 def set_up():
     tf_config = tf.ConfigProto(
         inter_op_parallelism_threads=1,
@@ -116,6 +108,8 @@ def evaluate(session,
     from geometry_msgs.msg import PoseStamped
     from replanning_demo import RobotController, add_obstacle
     import rospy
+    from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest, GetStateValidityResponse
+
     rospy.init_node('robot_controller')
     robot_controller = RobotController()
     add_obstacle(box_position)
@@ -165,6 +159,7 @@ if __name__ == "__main__":
     parser.add_argument('-visualize_sdf', '-v', action='store_true')
     parser.add_argument('-retrain_model', '-r', action='store_true')
     parser.add_argument('-load_model', '-l', action='store_true')
+    parser.add_argument('--controller', 'c', type=str, default='mpc')
     args = parser.parse_args()
 
     if args.visualize_sdf:
@@ -175,9 +170,11 @@ if __name__ == "__main__":
     if args.retrain_model:
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
-        box_position=np.array([1,.25,1])
-        # controller = MPCcontroller(session, predicted_action, sdf_ph, state_ph, ARM_DIMENSION)
-        controller = BCcontroller(session, predicted_action, sdf_ph, state_ph)
+        if args.controller = 'mpc':
+            controller = MPCcontroller(session, predicted_action, sdf_ph, state_ph, ARM_DIMENSION)
+        else:
+            controller = BCcontroller(session, predicted_action, sdf_ph, state_ph)
+        box_position=np.array([1,.1,1])
         trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, controller, box_position=box_position)
         # display_trajectory(trajectory, box_position=box_position)
 
