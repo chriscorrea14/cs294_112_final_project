@@ -1,2 +1,3 @@
-scp -i ~/deeprl_key.pem ubuntu@18.216.109.27:~/cs294_112_final_project/models/* models/
-scp -i ~/deeprl_key.pem trajectories/* ubuntu@18.216.109.27:~/cs294_112_final_project/trajectories/
+scp -i ~/deeprl_key.pem ubuntu@13.59.157.129:~/cs294_112_final_project/models/* models/
+scp -i ~/deeprl_key.pem trajectories/* ubuntu@13.58.40.162:~/cs294_112_final_project/trajectories/
+scp -i ~/deeprl_key.pem data/* ubuntu@13.59.157.129:~/cs294_112_final_project/data/
