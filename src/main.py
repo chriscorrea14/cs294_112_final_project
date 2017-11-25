@@ -122,7 +122,7 @@ def evaluate(session,
     for _ in range(horizon):
         robot_controller.publish_joints(state)
         state = state + controller.action(state, goal_state, sdf)
-        states.append(states)
+        states.append(state)
     print "Execution time:", time.time() - start_time
     return np.array(states)
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument('-visualize_sdf', '-v', action='store_true')
     parser.add_argument('-retrain_model', '-r', action='store_true')
     parser.add_argument('-load_model', '-l', action='store_true')
-    parser.add_argument('--controller', 'c', type=str, default='mpc')
+    parser.add_argument('--controller', '-c', type=str, default='mpc')
     args = parser.parse_args()
 
     if args.visualize_sdf:
@@ -170,12 +170,16 @@ if __name__ == "__main__":
     if args.retrain_model:
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
-        if args.controller = 'mpc':
+        if args.controller == 'mpc':
             controller = MPCcontroller(session, predicted_action, sdf_ph, state_ph, ARM_DIMENSION)
         else:
             controller = BCcontroller(session, predicted_action, sdf_ph, state_ph)
         box_position=np.array([1,.1,1])
-        trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, controller, box_position=box_position)
+        # state = np.array([0,.64,.63,0,0,0])
+        # state = np.array([0,.34,.63,0,0,0])
+        state = np.array([0]*6)
+        trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, controller, state=state, box_position=box_position)
+        print (trajectory*1000).astype(int)
         # display_trajectory(trajectory, box_position=box_position)
 
         # steps = []

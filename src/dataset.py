@@ -59,11 +59,13 @@ def generate_dataset(use_numpy=False):
             sdfs.append(generate_sdf(i))
             state, action = generate_state_action(i)
             sdf_indices.append([i-1] * state.shape[0])
+            print state.shape
             states.append(state)
             actions.append(action)
 
         sdf_indices = np.hstack(sdf_indices)
         sdfs = np.array(sdfs)
+
         states = np.vstack(states)
         actions = np.vstack(actions)
     return sdfs, sdf_indices, states, actions
@@ -74,12 +76,13 @@ def display_chomp_trajectories():
     import rospy
 
     # for i in range(30):
-    for i in [21]:
+    for i in [60]:
         file = str(i) + "_plan.pkl"
         trajectory = pickle.load(open("./trajectories/" + file, "rb"))
         trajectory = trajectory.joint_trajectory.points
         file = str(i) + "_box_position.pkl"
         box_position = pickle.load(open("./trajectories/" + file, "rb"))
+        print box_position
         display_trajectory(trajectory, box_position, iterations=1)
 
 def check_for_empty_trajectories():
@@ -99,5 +102,5 @@ def save_to_numpy():
 
 if __name__ == "__main__":
     # display_chomp_trajectories()
-    # save_to_numpy()
-    check_for_empty_trajectories()
+    save_to_numpy()
+    # check_for_empty_trajectories()

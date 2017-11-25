@@ -195,17 +195,19 @@ def save_trajectory(box_position, plan, filename):
         pickle.dump(plan, output, pickle.HIGHEST_PROTOCOL)
 
 def dagger(robot_controller):
-    starting_poss = np.load("./dagger/steps.npy")
+    # starting_poss = np.load("./dagger/steps.npy")
+    starting_poss = np.array([[0,.64,.63,0,0,0]])
     print(starting_poss)
     ending_pos = [-0.0974195, 1.3523, 0.682611, 0.156142, 0.675658, -0.122225]
     y_pos = np.linspace(-.5, .5, 30)
+
     # for i in range(30):
-    for i in [21]:
+    for i in [14, 16]:
         box_position = [1, y_pos[i], 1]
         add_obstacle(box_position, CollisionObject.ADD)
 
-        plan = robot_controller.collision_free_plan(starting_poss[i], ending_pos)
-        save_trajectory(box_position, plan, "./trajectories2/" + str(i+30))
+        plan = robot_controller.collision_free_plan(starting_poss[0], ending_pos)
+        save_trajectory(box_position, plan, "./trajectories2/" + str(60+i))
 
 if __name__ == '__main__':
     rospy.init_node('robot_controller')
