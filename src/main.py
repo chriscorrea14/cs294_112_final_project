@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from random import shuffle
-from dataset import generate_dataset, SDF
+from dataset import load_dataset, SDF
 import pickle
 import sys
 import argparse
@@ -69,7 +69,7 @@ def set_up():
     
 def train(session, loss, update_op, action, sdf_ph, state_ph):
     saver = tf.train.Saver()
-    sdfs, sdf_indices, states, actions = generate_dataset(use_numpy=True)
+    sdfs, sdf_indices, states, actions = load_dataset()
     indices = np.arange(states.shape[0])
 
     for i in range(ITERATIONS):
@@ -186,7 +186,7 @@ if __name__ == "__main__":
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
         from controllers import BCcontroller, MPCcontroller
-        
+
         if args.controller == 'mpc':
             controller = MPCcontroller(session, predicted_action, sdf_ph, state_ph, ARM_DIMENSION)
         else:
