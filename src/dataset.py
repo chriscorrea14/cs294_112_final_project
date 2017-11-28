@@ -84,6 +84,7 @@ def load_dataset():
     sdf_indices = np.load("./data/dataset/sdf_indices.npy")
     states = np.load("./data/dataset/states.npy")
     actions = np.load("./data/dataset/actions.npy")
+    return sdfs, sdf_indices, states, actions
 
 def display_chomp_trajectories():
     from geometry_msgs.msg import PoseStamped
