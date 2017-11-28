@@ -92,7 +92,7 @@ def display_chomp_trajectories():
     import rospy
 
     # for i in range(30):
-    for i in [60]:
+    for i in [0]:
         file = str(i) + "_plan.pkl"
         trajectory = pickle.load(open("./data/trajectories/" + file, "rb"))
         trajectory = trajectory.joint_trajectory.points
@@ -109,6 +109,6 @@ def check_for_empty_trajectories():
                 print(file)
 
 if __name__ == "__main__":
-    # display_chomp_trajectories()
-    generate_dataset()
+    display_chomp_trajectories()
+    # generate_dataset()
     # check_for_empty_trajectories()

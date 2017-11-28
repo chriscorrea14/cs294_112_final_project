@@ -12,7 +12,7 @@ SDF_DIMENSION = (1.5,2,4)
 SDF_RESOLUTION = .02
 # 6 for Fanuc, 7 for YuMi
 ARM_DIMENSION = 6
-LEARNING_RATE = 5e-4
+LEARNING_RATE = 5e-6
 ITERATIONS = 100
 BATCH_SIZE = 20
 
@@ -151,12 +151,12 @@ def display_trajectory(trajectory, box_position=np.array([1,0,1]), iterations=10
     add_obstacle(box_position)
 
     for _ in range(iterations):
-        raw_input("Press enter to display trajectory")
+        # raw_input("Press enter to display trajectory")
         for point in trajectory:
             if hasattr(point, "positions"):
                 point = point.positions
             robot_controller.publish_joints(point)
-            rospy.sleep(.05)
+            rospy.sleep(.15)
 
 def visualize_sdf():
     sdfs, sdf_indices, states, actions = load_dataset()
