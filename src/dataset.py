@@ -25,50 +25,66 @@ class SDF():
                     n = int((SDF_DIMENSION[2]/2. + k)/SDF_RESOLUTION)
                     self.data[l,m,n] = 1
 
-def generate_dataset(use_numpy=False):
+def generate_dataset():
     def generate_sdf(i):
         file = str(i) + "_box_position.pkl"
         sdf = SDF()
-        position = pickle.load(open("./trajectories/" + file, "rb"))
+        position = pickle.load(open("./data/trajectories/" + file, "rb"))
         sdf.add_box(position, (.5, .7, .1))
         return sdf.data
 
     def generate_state_action(i):
         file = str(i) + "_plan.pkl"
-        trajectory = pickle.load(open("./trajectories/" + file, "rb"))
+        trajectory = pickle.load(open("./data/trajectories/" + file, "rb"))
         trajectory = trajectory.joint_trajectory.points
         states, actions = [], []
         for j in range(len(trajectory) - 1):
             action = np.subtract(trajectory[j+1].positions, trajectory[j].positions)
-            # action = action / (100 * np.linalg.norm(action))
             states.append(trajectory[j].positions)
             actions.append(action)
         states = np.array(states)
         actions = np.array(actions)
         return states, actions
 
-    if use_numpy:
-        sdfs = np.load("./data/sdfs.npy")
-        sdf_indices = np.load("./data/sdf_indices.npy")
-        states = np.load("./data/states.npy")
-        actions = np.load("./data/actions.npy")
-    else:
-        files = listdir("./trajectories/")
-        sdfs, states, actions, sdf_indices = [], [], [], []
-        for i in range(int(len(files)/2)):
-            sdfs.append(generate_sdf(i))
-            state, action = generate_state_action(i)
-            sdf_indices.append([i-1] * state.shape[0])
-            print state.shape
-            states.append(state)
-            actions.append(action)
+    def generate_dagger_data():
+        files = listdir("./data/trajectories/")
+        all_states, all_actions, sdfs, sdf_indices = [], [], [], []
+        for i in range(int(len(files)/3)):
+            file_start = "./data/dagger/" + str(i) + "_"
+            states = np.load(file_start + "dagger_states.npy")
+            actions = np.load(file_start + "dagger_actions.npy")
+            box_position = np.load(file_start + "box_position.npy")
+            sdf = SDF()
+            sdf.add_box(box_position, (.5, .7, .1))
 
-        sdf_indices = np.hstack(sdf_indices)
-        sdfs = np.array(sdfs)
+            sdfs.append(sdf.data)
+            sdf_indices.append([i] * state.)
 
-        states = np.vstack(states)
-        actions = np.vstack(actions)
-    return sdfs, sdf_indices, states, actions
+    files = listdir("./data/trajectories/")
+    sdfs, states, actions, sdf_indices = [], [], [], []
+    for i in range(int(len(files)/2)):
+        sdfs.append(generate_sdf(i))
+        state, action = generate_state_action(i)
+        sdf_indices.append([i] * state.shape[0])
+        print state.shape
+        states.append(state)
+        actions.append(action)
+
+    sdf_indices = np.hstack(sdf_indices)
+    sdfs = np.array(sdfs)
+    states = np.vstack(states)
+    actions = np.vstack(actions)
+
+    np.save("./data/dataset/sdfs.npy", sdfs)
+    np.save("./data/dataset/sdf_indices.npy", sdf_indices)
+    np.save("./data/dataset/states.npy", states)
+    np.save("./data/dataset/actions.npy", actions)
+
+def load_dataset():
+    sdfs = np.load("./data/dataset/sdfs.npy")
+    sdf_indices = np.load("./data/dataset/sdf_indices.npy")
+    states = np.load("./data/dataset/states.npy")
+    actions = np.load("./data/dataset/actions.npy")
 
 def display_chomp_trajectories():
     from geometry_msgs.msg import PoseStamped
@@ -78,29 +94,22 @@ def display_chomp_trajectories():
     # for i in range(30):
     for i in [60]:
         file = str(i) + "_plan.pkl"
-        trajectory = pickle.load(open("./trajectories/" + file, "rb"))
+        trajectory = pickle.load(open("./data/trajectories/" + file, "rb"))
         trajectory = trajectory.joint_trajectory.points
         file = str(i) + "_box_position.pkl"
-        box_position = pickle.load(open("./trajectories/" + file, "rb"))
+        box_position = pickle.load(open("./data/trajectories/" + file, "rb"))
         print box_position
         display_trajectory(trajectory, box_position, iterations=1)
 
 def check_for_empty_trajectories():
-    files = listdir("./trajectories/")
+    files = listdir("./data/trajectories/")
     for file in files:
         if file.endswith("plan.pkl"):
-            trajectory = pickle.load(open("./trajectories/" + file, "rb"))
+            trajectory = pickle.load(open("./data/trajectories/" + file, "rb"))
             if len(trajectory.joint_trajectory.points) == 0:
                 print(file)
 
-def save_to_numpy():
-    sdfs, sdf_indices, states, actions = generate_dataset()
-    np.save("./data/sdfs.npy", sdfs)
-    np.save("./data/sdf_indices.npy", sdf_indices)
-    np.save("./data/states.npy", states)
-    np.save("./data/actions.npy", actions)
-
 if __name__ == "__main__":
     # display_chomp_trajectories()
-    save_to_numpy()
+    generate_dataset()
     # check_for_empty_trajectories()
