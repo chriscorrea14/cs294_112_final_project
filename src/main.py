@@ -7,7 +7,6 @@ import pickle
 import sys
 import argparse
 import time
-from controllers import BCcontroller, MPCcontroller
 
 SDF_DIMENSION = (1.5,2,4)
 SDF_RESOLUTION = .02
@@ -186,6 +185,8 @@ if __name__ == "__main__":
     if args.retrain_model:
         train(session, loss, update_op, action, sdf_ph, state_ph)
     else:
+        from controllers import BCcontroller, MPCcontroller
+        
         if args.controller == 'mpc':
             controller = MPCcontroller(session, predicted_action, sdf_ph, state_ph, ARM_DIMENSION)
         else:
