@@ -136,7 +136,7 @@ class MPCcontroller_old(object):
         for _ in range(self.num_random):
             a = time.time()
             actions = self.random_action(state, goal_state)
-            print "random", time.time() - a
+            print("random", time.time() - a)
             if not initial_action_set:
                 initial_actions = actions
                 second_states = states + actions
@@ -148,11 +148,11 @@ class MPCcontroller_old(object):
                     feed_dict={self.sdf_ph: sdfs, self.state_ph: states}
                 )
             states = states + actions
-        print "chomp", time.time() - a
+        print("chomp", time.time() - a)
 
         a = time.time()
         costs = self.cost_fn(second_states, states, goal_state)
-        print "cost", time.time() - a
+        print("cost", time.time() - a)
         return initial_actions[np.argmin(costs)]
 
 class MPCcontroller(object):
