@@ -14,7 +14,7 @@ SDF_RESOLUTION = .02
 # 6 for Fanuc, 7 for YuMi
 ARM_DIMENSION = 6
 LEARNING_RATE = 5e-4
-ITERATIONS = 40
+ITERATIONS = 100
 BATCH_SIZE = 20
 
 def get_2d_model(sdf, state, num_actions, scope, reuse=False):
@@ -104,7 +104,8 @@ def evaluate(session,
              horizon=100, 
              box_position=np.array([1,0,1]), 
              state=np.array([0.0] * 6), 
-             goal_state=np.array([-0.0974195, 1.3523, 0.682611, 0.156142, 0.675658, -0.122225])):
+             goal_state=np.array([-0.0974195, 1.3523, 0.682611, 0.156142, 0.675658, -0.122225]),
+             relabel=True):
     from geometry_msgs.msg import PoseStamped
     from replanning_demo import RobotController, add_obstacle
     import rospy
@@ -117,14 +118,29 @@ def evaluate(session,
     sdf = SDF()
     sdf.add_box(box_position, (.5, .7, .1))
 
-    states = []
+    trajectory = []
+    dagger_states = []
+    dagger_actions = []
     start_time = time.time()
     for _ in range(horizon):
         robot_controller.publish_joints(state)
-        state = state + controller.action(state, goal_state, sdf)
-        states.append(state)
-    print "Execution time:", time.time() - start_time
-    return np.array(states)
+        action, action_difference = controller.action(state, goal_state, sdf)
+        if action_difference:
+            dagger_states.append(state)
+            dagger_actions.append(action)
+        state = state + action
+        trajectory.append(state)
+    print ("Execution time:", time.time() - start_time)
+
+    if relabel:
+        i = 0
+        dagger_states = np.array(dagger_states)
+        dagger_actions = np.array(dagger_actions)
+        file_start = "./data/dagger/" + str(i) + "_"
+        np.save(file_start + "dagger_states.npy", dagger_states)
+        np.save(file_start + "dagger_actions.npy", dagger_actions)
+        np.save(file_start + "box_position.npy", box_position)
+    return np.array(trajectory)
 
 def display_trajectory(trajectory, box_position=np.array([1,0,1]), iterations=10):
     from geometry_msgs.msg import PoseStamped
@@ -144,7 +160,7 @@ def display_trajectory(trajectory, box_position=np.array([1,0,1]), iterations=10
             rospy.sleep(.05)
 
 def visualize_sdf():
-    sdfs, sdf_indices, states, actions = generate_dataset()
+    sdfs, sdf_indices, states, actions = load_dataset()
     plt.gray()
     # for scale in np.linspace(0,1,20):
     for i in range(30):
@@ -174,11 +190,18 @@ if __name__ == "__main__":
             controller = MPCcontroller(session, predicted_action, sdf_ph, state_ph, ARM_DIMENSION)
         else:
             controller = BCcontroller(session, predicted_action, sdf_ph, state_ph)
-        box_position=np.array([1,.1,1])
+        box_position=np.array([1,.2,1])
         # state = np.array([0,.64,.63,0,0,0])
         # state = np.array([0,.34,.63,0,0,0])
         state = np.array([0]*6)
-        trajectory = evaluate(session, predicted_action, sdf_ph, state_ph, controller, state=state, box_position=box_position)
+        trajectory = evaluate(session, 
+                              predicted_action, 
+                              sdf_ph, 
+                              state_ph, 
+                              controller, 
+                              state=state, 
+                              box_position=box_position,
+                              relabel=True)
         print (trajectory*1000).astype(int)
         # display_trajectory(trajectory, box_position=box_position)
 
