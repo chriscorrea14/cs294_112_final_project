@@ -202,7 +202,7 @@ if __name__ == "__main__":
                               state=state, 
                               box_position=box_position,
                               relabel=True)
-        print (trajectory*1000).astype(int)
+        print((trajectory*1000).astype(int))
         # display_trajectory(trajectory, box_position=box_position)
 
         # steps = []

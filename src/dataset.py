@@ -97,7 +97,6 @@ def display_chomp_trajectories():
         trajectory = trajectory.joint_trajectory.points
         file = str(i) + "_box_position.pkl"
         box_position = pickle.load(open("./data/trajectories/" + file, "rb"))
-        print box_position
         display_trajectory(trajectory, box_position, iterations=1)
 
 def check_for_empty_trajectories():
