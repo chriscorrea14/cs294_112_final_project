@@ -66,7 +66,6 @@ def generate_dataset():
         sdfs.append(generate_sdf(i))
         state, action = generate_state_action(i)
         sdf_indices.append([i] * state.shape[0])
-        print state.shape
         states.append(state)
         actions.append(action)
 
