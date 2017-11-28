@@ -46,19 +46,19 @@ def generate_dataset():
         actions = np.array(actions)
         return states, actions
 
-    def generate_dagger_data():
-        files = listdir("./data/trajectories/")
-        all_states, all_actions, sdfs, sdf_indices = [], [], [], []
-        for i in range(int(len(files)/3)):
-            file_start = "./data/dagger/" + str(i) + "_"
-            states = np.load(file_start + "dagger_states.npy")
-            actions = np.load(file_start + "dagger_actions.npy")
-            box_position = np.load(file_start + "box_position.npy")
-            sdf = SDF()
-            sdf.add_box(box_position, (.5, .7, .1))
+    # def generate_dagger_data():
+    #     files = listdir("./data/trajectories/")
+    #     all_states, all_actions, sdfs, sdf_indices = [], [], [], []
+    #     for i in range(int(len(files)/3)):
+    #         file_start = "./data/dagger/" + str(i) + "_"
+    #         states = np.load(file_start + "dagger_states.npy")
+    #         actions = np.load(file_start + "dagger_actions.npy")
+    #         box_position = np.load(file_start + "box_position.npy")
+    #         sdf = SDF()
+    #         sdf.add_box(box_position, (.5, .7, .1))
 
-            sdfs.append(sdf.data)
-            sdf_indices.append([i] * state.)
+    #         sdfs.append(sdf.data)
+    #         sdf_indices.append([i] * state.)
 
     files = listdir("./data/trajectories/")
     sdfs, states, actions, sdf_indices = [], [], [], []
